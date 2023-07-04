@@ -1,0 +1,8 @@
+D:\CSharp\IUNIOR\DZ\War\bin\Debug\War.exe.config
+D:\CSharp\IUNIOR\DZ\War\bin\Debug\War.exe
+D:\CSharp\IUNIOR\DZ\War\bin\Debug\War.pdb
+D:\CSharp\IUNIOR\DZ\War\obj\Debug\War.csproj.AssemblyReference.cache
+D:\CSharp\IUNIOR\DZ\War\obj\Debug\War.csproj.SuggestedBindingRedirects.cache
+D:\CSharp\IUNIOR\DZ\War\obj\Debug\War.csproj.CoreCompileInputs.cache
+D:\CSharp\IUNIOR\DZ\War\obj\Debug\War.exe
+D:\CSharp\IUNIOR\DZ\War\obj\Debug\War.pdb
