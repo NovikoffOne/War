@@ -13,7 +13,7 @@ namespace War
 
             Queue<IEntity> armyKashkania = new Queue<IEntity>();
             armyKashkania.Enqueue(Kashkania.CreateHeavySoldier());
-            armyKashkania.Enqueue(Kashkania.CreateSolder());
+            armyKashkania.Enqueue(Kashkania.CreateScout());
             armyKashkania.Enqueue(Kashkania.CreateDemolitionWorker());
 
             Queue<IEntity> armyDauniya = new Queue<IEntity>();
@@ -52,17 +52,17 @@ namespace War
 
         private void FightSoldier(IEntity AttackingSolder,IEntity DefendingSolder)
         {
-            while (AttackingSolder.Die() == false && DefendingSolder.Die() == false)
+            while (AttackingSolder.IsDead() == false && DefendingSolder.IsDead() == false)
             {
-                DefendingSolder.TakeDamage(AttackingSolder.Attack());
+                AttackingSolder.Attack(DefendingSolder);
 
-                if(DefendingSolder.Die() == false)
-                    AttackingSolder.TakeDamage(DefendingSolder.Attack());
+                if(DefendingSolder.IsDead() == false)
+                    DefendingSolder.Attack(AttackingSolder);
             }
 
-            if (AttackingSolder.Die() == true && DefendingSolder.Die() == false)
+            if (AttackingSolder.IsDead() == true && DefendingSolder.IsDead() == false)
                 _defendingCountry.Enqueue(DefendingSolder);
-            else if (DefendingSolder.Die() == true && AttackingSolder.Die() == false)
+            else if (DefendingSolder.IsDead() == true && AttackingSolder.IsDead() == false)
                 _attackingCountry.Enqueue(AttackingSolder);
         }
 
@@ -104,16 +104,16 @@ namespace War
 
         public IEntity CreateScout()
         {
-            return new Scout(new Soldier(this, _baseHealthScout, _baseDamageScout, ScoutRank));
+            return new Scout(this, _baseHealthScout, _baseDamageScout, ScoutRank);
         }
 
         public IEntity CreateHeavySoldier()
         {
-            return new HeavySoldier(new Soldier(this, _baseHealthHeavySolder, _baseDamageHeavySolder, HeavySoldierRank));
+            return new HeavySoldier(this, _baseHealthHeavySolder, _baseDamageHeavySolder, HeavySoldierRank);
         }
         public IEntity CreateDemolitionWorker()
         {
-            return new DemolitionWorker(new Soldier(this, _baseHealthSolder, _baseDamageSolder, DemolitionWorkerRank));
+            return new DemolitionWorker(this, _baseHealthSolder, _baseDamageSolder, DemolitionWorkerRank);
         }
     }
 
@@ -121,9 +121,9 @@ namespace War
     {
         void TakeDamage(int damage);
 
-        int Attack();
+        void Attack(IEntity enemy);
 
-        bool Die();
+        bool IsDead();
 
         string Rank();
 
@@ -135,17 +135,12 @@ namespace War
         private string _rank;
         private int _health;
         private int _damage;
+
         private Country _country;
 
-        public bool Die()
-        {
-            if(_health <= 0)
-            {
-                return true;
-            }
-
-            return false;
-        }
+        public bool IsDead() => _health <= 0;
+        public string Rank() => _rank;
+        public string Country() => _country.Name;
 
         public Soldier(Country country, int health, int damage, string rank)
         {
@@ -155,9 +150,9 @@ namespace War
             _country = country;
         }
 
-        public int Attack()
+        public void Attack(IEntity enemy)
         {
-            return _damage;
+            enemy.TakeDamage(CalculateAttackDamage(_damage));
         }
 
         public void Died()
@@ -167,139 +162,90 @@ namespace War
 
         public void TakeDamage(int damage)
         {
-            _health -= damage;
+            _health -= CalculateArmorDamage(damage);
 
             if (_health < 0)
                 _health = 0;
 
-            if (_health == 0)
+            if (IsDead() == true)
                 Died();
         }
 
-        public string Rank()
+        protected virtual int CalculateAttackDamage(int damage)
         {
-            return _rank;
+            return damage;
         }
 
-        public string Country()
+        protected virtual int CalculateArmorDamage(int damage)
         {
-            return _country.Name;
+            return damage;
         }
     }
 
-    public class HeavySoldier : IEntity
+    public class HeavySoldier : Soldier
     {
-        private IEntity _entity;
         private int _armor;
         private int _armorDebuff = 1;
 
-        public HeavySoldier(IEntity entity, int armor = 4)
+        public HeavySoldier(Country country, int health, int damage, string rank, int armor = 4) : base(country, health, damage, rank)
         {
-            _entity = entity;
             _armor = armor;
         }
 
-        public int Attack()
+        protected override int CalculateAttackDamage(int damage)
         {
-            return _entity.Attack() - _armorDebuff;
+            return damage -= _armorDebuff;
         }
 
-        public bool Die()
+        protected override int CalculateArmorDamage(int damage)
         {
-            return _entity.Die();
-        }
-
-        public void TakeDamage(int damage)
-        {
-            _entity.TakeDamage(damage - _armor);
-        }
-
-        public string Rank()
-        {
-            return _entity.Rank();
-        }
-
-        public string Country()
-        {
-            return _entity.Country();
+            return damage -= _armor;
         }
     }
 
-    public class Scout : IEntity
+    public class Scout : Soldier
     {
-        private IEntity _entity;
         private int _agility;
         private int _damageFactor;
 
-        public Scout(IEntity entity, int agility = 4, int damageFactor = 2)
+        public Scout(Country country, int health, int damage, string rank, int agility = 4, int damageFactor = 2) 
+            : base(country, health, damage, rank)
         {
-            _entity = entity;
             _agility = agility;
             _damageFactor = damageFactor;
         }
 
-        public int Attack()
+        protected override int CalculateAttackDamage(int damage)
         {
-            return _entity.Attack() * _damageFactor;
+            return damage *= _damageFactor;
         }
 
-        public void TakeDamage(int damage)
+        protected override int CalculateArmorDamage(int damage)
         {
             damage -= damage / _agility;
 
-            _entity.TakeDamage(damage);
-        }
-
-        public bool Die()
-        {
-            return _entity.Die();
-        }
-
-        public string Rank()
-        {
-            return _entity.Rank();
-        }
-
-        public string Country()
-        {
-            return _entity.Country();
+            return damage;
         }
     }
 
-    public class DemolitionWorker : IEntity
+    public class DemolitionWorker : Soldier
     {
-        private IEntity _entity;
         private int _damageFactor;
 
-        public DemolitionWorker(IEntity entity, int damageFactor = 4)
+        public DemolitionWorker(Country country, int health, int damage, string rank, int damageFactor = 4) 
+            : base(country, health, damage, rank)
         {
-            _entity = entity;
             _damageFactor = damageFactor;
         }
 
-        public int Attack()
+        protected override int CalculateAttackDamage(int damage)
         {
-            return _entity.Attack() * _damageFactor;
+            return damage *= _damageFactor;
         }
 
-        public void TakeDamage(int damage)
+        protected override int CalculateArmorDamage(int damage)
         {
-            _entity.TakeDamage(damage * _damageFactor);
-        }
-
-        public bool Die()
-        {
-            return _entity.Die();
-        }
-
-        public string Rank()
-        {
-            return _entity.Rank();
-        }
-
-        public string Country()
-        {
-            return _entity.Country();
+            return damage *= _damageFactor;
         }
     }
 }
