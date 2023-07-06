@@ -155,7 +155,7 @@ namespace War
             enemy.TakeDamage(CalculateAttackDamage(_damage));
         }
 
-        public void Died()
+        public void Die()
         {
             Console.WriteLine(_rank + " убит.");
         }
@@ -164,11 +164,8 @@ namespace War
         {
             _health -= CalculateArmorDamage(damage);
 
-            if (_health < 0)
-                _health = 0;
-
             if (IsDead() == true)
-                Died();
+                Die();
         }
 
         protected virtual int CalculateAttackDamage(int damage)
